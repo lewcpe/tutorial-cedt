@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailwind Example</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pocketbase/dist/pocketbase.umd.js"></script>
+
+</head>
+
+<body>
+
+    <div class="max-w-md mx-auto p-4">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold">To-Do List</h1>
+            <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-zinc-600" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <p class="text-zinc-600">John Doe</p>
+                <button id="logout" class="text-zinc-600">Logout</button>
+            </div>
+        </div>
+
+        <div id="taskList"></div>
+
+        <button id="addTask" class="flex items-center justify-center mt-4 p-2 bg-blue-500 text-white rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M10 0a1 1 0 0 1 1 1v8h8a1 1 0 1 1 0 2h-8v8a1 1 0 1 1-2 0v-8H1a1 1 0 1 1 0-2h8V1a1 1 0 0 1 1-1z" />
+            </svg>
+            Add New Task
+        </button>
+    </div>
+
+    <div id="taskDialog"
+        class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center hidden">
+        <div class="bg-white p-4 rounded-lg">
+            <input type="text" id="newTaskDescription" placeholder="Enter task description"
+                class="p-2 border rounded-lg w-full mb-4">
+            <div class="flex justify-end">
+                <button id="cancelTask" class="mr-2 p-2 bg-red-500 text-white rounded-lg">Cancel</button>
+                <button id="confirmTask" class="p-2 bg-blue-500 text-white rounded-lg">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const addTaskButton = document.getElementById('addTask');
+        const taskDialog = document.getElementById('taskDialog');
+        const cancelTaskButton = document.getElementById('cancelTask');
+        const confirmTaskButton = document.getElementById('confirmTask');
+
+        addTaskButton.addEventListener('click', () => {
+            taskDialog.classList.remove('hidden');
+        });
+
+        cancelTaskButton.addEventListener('click', () => {
+            taskDialog.classList.add('hidden');
+        });
+
+        const newTaskInput = document.getElementById('newTaskDescription');
+
+        confirmTaskButton.addEventListener('click', async () => {
+            const pb = new PocketBase();
+            try {
+                const data = {
+                    description: newTaskInput.value,
+                    completed: false,
+                    owner: pb.authStore.model.id,
+                };
+
+                await pb.collection('tasks').create(data);
+                newTaskInput.value = '';
+                taskDialog.classList.add('hidden');
+                fetchTasks();
+            } catch (error) {
+                console.error('Error creating task:', error);
+            }
+        });
+    </script>
+    <script>
+        const pb = new PocketBase();
+        const taskList = document.getElementById('taskList');
+
+        async function fetchTasks() {
+            try {
+
+                const tasks = await pb.collection('tasks').getList();
+
+                taskList.innerHTML = '';
+                tasks.items.forEach((task) => {
+                    const taskItem = document.createElement('div');
+                    taskItem.classList.add('flex', 'items-center', 'mb-2');
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.classList.add('form-checkbox', 'h-5', 'w-5', 'text-blue-500');
+                    checkbox.checked = task.completed;
+
+                    const taskDescription = document.createElement('input');
+                    taskDescription.type = 'text';
+                    taskDescription.value = task.description;
+                    taskDescription.classList.add('ml-2', 'p-2', 'border', 'rounded-lg', 'w-full');
+
+                    taskItem.appendChild(checkbox);
+                    taskItem.appendChild(taskDescription);
+                    taskList.appendChild(taskItem);
+                });
+            } catch (error) {
+                console.error('Error fetching tasks:', error);
+            }
+        }
+
+        fetchTasks();
+    </script>
+</body>
+
+</html>
